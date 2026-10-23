@@ -86,9 +86,6 @@ class Shelf(BaseModel):
 # ---------------------------------------------------------------- tools
 
 def add_books_to_memory(reply):
-    """
-    beware that this function currently does not check for duplicate books when adding
-    """
     write(reply.model_dump())
 
 # name: (argument model, function, description). The declarations are built from it.
