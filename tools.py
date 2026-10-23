@@ -3,9 +3,12 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
-from pydantic import BaseModel,Field, ValidationError
+from pydantic import BaseModel,Field, ValidationError, computed_field
 import json
 from pathlib import Path
+
+import uuid
+import re
 
 
 load_dotenv()
@@ -15,6 +18,7 @@ MODEL = "gemini-flash-lite-latest"
 MIME = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
 
 BOOKS = Path(__file__).parent / "books.json"
+
 
 # ---------------------------------------------------------------- something
 def file_item(path, resolution=None):
@@ -33,17 +37,21 @@ def file_item(path, resolution=None):
 
 def write(data):
     if not BOOKS.exists():
-        BOOKS.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        BOOKS.write_text(json.dumps(data, indent=4), encoding="utf-8")
     else:
         with open("books.json", "r+") as file:
             new_books = data["books"]
-            
-            books = json.load(file)            
-            books["books"].extend(new_books)
-            file.seek(0)
-            file.truncate()
-            json.dump(books, file, indent=4)
+            books = json.load(file)  
 
+            existing_ids = {b["id"] for b in books.get("books", []) if "id" in b}
+            books_to_add = [b for b in new_books if b.get("id") not in existing_ids]            
+                       
+            if books_to_add:
+                books["books"].extend(books_to_add)
+                file.seek(0)
+                file.truncate()
+                json.dump(books, file, indent=4)
+ 
 
 
 # ---------------------------------------------------------------- schemas/arguments
@@ -59,6 +67,18 @@ class Book(BaseModel):
     title : str  = Field(description = "Title of the book as it is in the photo") 
     english_title: str = Field(description = "Title of the book in english") 
     genres : list[Genre] 
+
+    @computed_field
+    @property
+    def id(self) -> str:
+        clean_title = re.sub(r"\s+", " ", self.english_title.strip().lower())
+        clean_authors = sorted(
+            re.sub(r"\s+", " ", a.author.strip().lower())
+            for a in self.authors if a.author.strip()
+        )
+        authors_str = "; ".join(clean_authors) if clean_authors else "unknown"
+        seed = f"{clean_title}::{authors_str}"
+        return str(uuid.uuid5(uuid.NAMESPACE_OID, seed))
 
 class Shelf(BaseModel):
     books : list[Book]
@@ -77,7 +97,7 @@ TOOLS = {"add_books_to_memory" : (Shelf,add_books_to_memory,"Scans a photo of a 
 ASK_FIRST = {}#{"add_books_to_memory"}
 
 DECLARATIONS = [
-    {"type": "function", "name": name, "description": description, "parameters": model.model_json_schema()}
+    {"type": "function", "name": name, "description": description, "parameters": model.model_json_schema(mode="validation")}
     for name, (model, _, description) in TOOLS.items()
 ]
 
