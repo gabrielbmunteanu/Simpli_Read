@@ -193,10 +193,10 @@ def delete_book(args):
  
 
 # name: (argument model, function, description). The declarations are built from it.
-TOOLS = {"add_books_to_memory" : (Shelf,add_books_to_memory,"Scans a photo of a bookshelf and extracts information from all the books and stores it"),
-        "list_book_by_title" : (BookTitle,list_book_by_title,"Lists books by title"),
-        "delete_book" : (DeleteBook,delete_book,"Deletes a book by id"),
-        "list_book_by_title_and_author" : (BookTitleAndAuthor,list_book_by_title_and_author,"Lists books by title and author"),
+TOOLS = {"add_books_to_memory" : (Shelf, add_books_to_memory, "Scans a photo of a bookshelf and extracts information from all the books and stores it"),
+        "list_book_by_title" : (BookTitle, list_book_by_title, "Lists books by title"),
+        "delete_book" : (DeleteBook, delete_book, "Deletes a book by id"),
+        "list_book_by_title_and_author" : (BookTitleAndAuthor, list_book_by_title_and_author, "Lists books by title and author"),
         "list_books": (NoArgs, list_books, "Lists all books currently in memory"),
      }
 
