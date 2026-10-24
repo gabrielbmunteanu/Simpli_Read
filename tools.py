@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from google import genai
 from pydantic import BaseModel,Field, ValidationError, computed_field
 import json
+import builtins
 
 import uuid
 import re
@@ -275,8 +276,16 @@ def run_agent(message, system, path = None, tools=DECLARATIONS, previous_id=None
         results = []
         for call in calls:  # one after another, in the order given
             result = run_tool(call.name, call.arguments)
+        
+            if isinstance(result, dict) and result.get("status") == "ambiguous":
+                user_choice = builtins.input("Please specify the author of the book to delete: ").strip()     
+                if user_choice:
+                    result["user_selected_author"] = user_choice
+                    result["message"] += f" The user clarified the author is '{user_choice}'" 
+
             print(f"  round {rounds}  {call.name} {json.dumps(call.arguments)} -> {json.dumps(result)[:90]}")
-            results.append({"type": "function_result", "call_id": call.id, "name": call.name, "result": result})
+            results.append({"type": "function_result", "call_id": call.id, "name": call.name, "result": result})            
+            
         interaction = client.interactions.create(input=results, previous_interaction_id=interaction.id, **send)
 
 
@@ -287,8 +296,9 @@ system_instr = "You are an intelligent multimodal visual assistant for a book di
                 or reading spots) alongside an optional user query, determining the user's intent, \
                 and routing the request to the appropriate tool function."
 
-print(run_agent(message="what are the books present in this photo?", system=system_instr, path="estante_casa.jpg"))
+# print(run_agent(message="what are the books present in this photo?", system=system_instr, path="estante_casa.jpg"))
 
+print(run_agent(message="Delete the book Persuasion", system=system_instr,path = None)) 
  
 
 
